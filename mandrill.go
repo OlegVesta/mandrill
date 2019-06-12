@@ -49,7 +49,9 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"time"
 )
 
 // Client manages requests to the Mandrill API
@@ -212,9 +214,17 @@ func (err Error) Error() string {
 // ClientWithKey returns a mandrill.Client pointer armed with the supplied Mandrill API key
 // For integration testing, you can supply `SANDBOX_SUCCESS` or `SANDBOX_ERROR` as the API key.
 func ClientWithKey(key string) *Client {
+	var transport = &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   5 * time.Second,
+			KeepAlive: 5 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+	}
 	return &Client{
 		Key:        key,
-		HTTPClient: &http.Client{},
+		HTTPClient: &http.Client{Transport: transport},
 		BaseURL:    "https://mandrillapp.com/api/1.0/",
 	}
 }
